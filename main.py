@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from RobuSTL import bilateral_window, bilateral_filtering, estimate_period, \
-    extract_seasonality, remove_norm_mean, seasonal_difference, extract_trend
+    extract_seasonality, adjust_season, seasonal_difference, extract_trend, get_remainder
 
 np.random.seed(4)
 signal = []
@@ -21,27 +21,42 @@ signal = np.asarray(signal)
 plt.figure()
 plt.plot(signal)
 plt.figure()
-H = 3
-K = 2
-delta_d = 1
-delta_i = 1
-t = 146
-j = np.linspace(t - H, t + H, 2 * H + 1, dtype=int)
-window, yj = bilateral_window(signal, t, j, delta_d, delta_i)
-plt.plot(yj)
-plt.plot(window)
+# H = 3
+# K = 2
+# delta_d = 1
+# delta_i = 1
+# t = 146
+# j = np.linspace(t - H, t + H, 2 * H + 1, dtype=int)
+# window, yj = bilateral_window(signal, t, j, delta_d, delta_i)
+# plt.plot(yj)
+# plt.plot(window)
+#
+# plt.figure()
+# filtered = bilateral_filtering(signal, H, delta_d, delta_i)
+# plt.plot(filtered)
+#
+# T = estimate_period(signal, fs=fs)
+#
+# print(seasonal_difference(signal, T).shape, signal.size - T * fs)
+#
+# new_signal, trend = extract_trend(filtered, T, lambda_1=1.0, lambda_2=0.5)
+# plt.figure()
+# plt.plot(trend)
+# plt.plot(new_signal)
+# season = extract_seasonality(filtered, fs, H, K, delta_d, delta_i)
+# plt.figure()
+# plt.plot(season)
 
+
+filter_params = {"H": 3, "delta_d": 1, "delta_i": 1}
+season_params = {"H": 3, "K": 2, "delta_d": 1, "delta_i": 1}
+
+(remainder, filtered, season, trend) = get_remainder(signal, fs, filter_params, season_params, lambda_1=10.0, lambda_2=0.5)
 plt.figure()
-filtered = bilateral_filtering(signal, H, delta_d, delta_i)
-plt.plot(filtered)
+plt.plot(remainder, label="remainder")
+plt.plot(filtered, label="filtered")
+plt.plot(season, label="season")
+plt.plot(trend, label="trend")
+plt.legend()
 
-T = estimate_period(signal, fs=fs)
-
-print(seasonal_difference(signal, T).shape, signal.size - T*fs)
-
-
-new_signal, trend = extract_trend(filtered, T, lambda_1=1.0, lambda_2=0.5)
-plt.figure()
-plt.plot(trend)
-plt.plot(new_signal)
 plt.show()

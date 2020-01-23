@@ -10,6 +10,7 @@ from l1 import l1
 def bilateral_window(y, t, J, delta_d, delta_i):
     filtered = []
     y_j = []
+    print(len(J))
     for j in J:
         filtered.append(
             np.exp(-abs(j - t) ** 2 / (2 * delta_d ** 2)) * np.exp(-abs(y[j] - y[t]) ** 2 / (2 * delta_i ** 2)))
@@ -48,7 +49,7 @@ def extract_seasonality(timeseries, fs, K, H, delta_d, delta_i):
     T = round(estimate_period(timeseries, fs), 2)
     season = []
     for t in range(N):
-        if t < K:
+        if t < K * T:
             t_dash = np.arange(0, t - T, T, dtype=int)
         else:
             t_dash = np.arange(t - K * T, t - T, T, dtype=int)
@@ -66,14 +67,17 @@ def extract_seasonality(timeseries, fs, K, H, delta_d, delta_i):
     return np.array(season)
 
 
-def remove_norm_mean(season, fs):
+def correction_factor(season, fs):
     N = season.size
     T = round(estimate_period(season, fs), 2)
     prefactor = 1 / (T * np.floor(N / T))
     tau1 = prefactor * np.sum(season[0: int(1 / prefactor)])
-    season = season - tau1
-    season /= season.max()
-    return season
+    return tau1
+
+
+def adjust_season(season, fs):
+    tau1 = correction_factor(season, fs)
+    return season - tau1
 
 
 def seasonal_difference(timeseries, period_samples):
@@ -82,8 +86,6 @@ def seasonal_difference(timeseries, period_samples):
 
 
 def grad2relative(grad):
-
-
     def grad2relative_single(trend_idx):
         if trend_idx < 0:
             return 0
@@ -112,4 +114,20 @@ def extract_trend(timeseries, period_samples, lambda_1=1.0, lambda_2=0.5):
     new_timeseries = timeseries - trends
     return new_timeseries, trends
 
+
 # TODO: compatibility with sparse matrices for the l1 norm
+
+
+def adjust_trend(trend, tau1):
+    return trend + tau1
+
+
+def get_remainder(timeseries, fs, filter_params, season_params, lambda_1=10.0, lambda_2=0.5):
+    H, delta_d, delta_i = (filter_params["H"], filter_params["delta_d"], filter_params["delta_i"])
+    filtered = timeseries  # bilateral_filtering(timeseries, H, delta_d, delta_i)
+    T = estimate_period(filtered, fs=fs)
+    filtered, trend = extract_trend(filtered, T, lambda_1=lambda_1, lambda_2=lambda_2)
+    H, K, delta_d, delta_i = (season_params["H"], season_params["K"], season_params["delta_d"], season_params["delta_i"])
+    season = extract_seasonality(filtered, fs, H, K, delta_d, delta_i)
+    remainder = filtered - season
+    return remainder, filtered, season, trend
