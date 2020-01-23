@@ -82,7 +82,9 @@ def seasonal_difference(timeseries, period_samples):
 
 
 def grad2relative(grad):
-    def grad2relative_single(grad, trend_idx):
+
+
+    def grad2relative_single(trend_idx):
         if trend_idx < 0:
             return 0
         else:

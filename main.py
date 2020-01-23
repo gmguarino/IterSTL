@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from RobustSTL import bilateral_window, bilateral_filtering, estimate_period, \
+from RobuSTL import bilateral_window, bilateral_filtering, estimate_period, \
     extract_seasonality, remove_norm_mean, seasonal_difference, extract_trend
 
 np.random.seed(4)
@@ -10,7 +10,7 @@ freq = 0.8
 print("T = ", 1 / freq)
 fs = 100
 w = 2 * np.pi * freq
-trend = 0  # 0.0025
+trend = 0.002
 for i in range(500):
     switch = np.random.rand()
     if switch < 0.98:
@@ -37,9 +37,11 @@ plt.plot(filtered)
 
 T = estimate_period(signal, fs=fs)
 
-
-
 print(seasonal_difference(signal, T).shape, signal.size - T*fs)
 
-extract_trend(signal, T, lambda_1=1.0, lambda_2=0.5)
+
+new_signal, trend = extract_trend(filtered, T, lambda_1=1.0, lambda_2=0.5)
+plt.figure()
+plt.plot(trend)
+plt.plot(new_signal)
 plt.show()

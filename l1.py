@@ -13,8 +13,10 @@ def l1(P, q):
                  subject to  P'*w = 0
                              ||w||_infty <= 1.
     """
-    P = sparse(matrix(P.todense()))
-    q = sparse(matrix(q.todense()))
+    # P = sparse(matrix(P.todense()))
+    P = matrix(P.todense())
+    # q = sparse(matrix(q.todense()))
+    q = matrix(q.todense())
     m, n = P.size
 
     # Solve equivalent LP
