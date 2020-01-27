@@ -2,8 +2,6 @@ import numpy as np
 from numpy.random import randint
 from scipy.signal import periodogram
 from scipy.sparse import diags, eye, vstack
-from scipy.sparse.linalg import norm, spsolve, lsqr
-from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
 from l1 import l1
 
@@ -54,19 +52,9 @@ def extract_seasonality(timeseries, fs, K, H, delta_d, delta_i):
     season = []
     for t in range(N):
         t_dash = np.arange(int(max(0, t - K * T)), t - T, T, dtype=int)
-
-        if t < K * T:
-            t_dash = np.arange(0, t - T, T, dtype=int)
-        else:
-            t_dash = np.arange(t - K * T, t - T, T, dtype=int)
         t_window = []
         for _t_dash in t_dash:
-            if _t_dash < H:
-                J = np.arange(0, _t_dash + H, 1, dtype=int)
-            elif N - _t_dash <= H:
-                J = np.arange(_t_dash - H, N, 1, dtype=int)
-            else:
-                J = np.arange(_t_dash - H, _t_dash + H, 1, dtype=int)
+            J = np.arange(max([0, _t_dash - H]), min([N, _t_dash + H]), 1, dtype=int)
             window, yj = bilateral_window(timeseries, _t_dash, J, delta_d, delta_i)
             t_window.append(np.sum(window * yj))
         season.append(np.sum(t_window))
@@ -187,8 +175,10 @@ def IterativeSeason(timeseries, decimation_rate=0.5, prob_dist=None):
 
 def ISTL(timeseries, fs, filter_params, decimation_rate=0.5, lambda_1=10.0, lambda_2=0.5):
     H, delta_d, delta_i = (filter_params["H"], filter_params["delta_d"], filter_params["delta_i"])
-    filtered = bilateral_filtering(timeseries, H, delta_d, delta_i)
+    filtered = timeseries  # bilateral_filtering(timeseries, H, delta_d, delta_i)
     T = estimate_period(filtered, fs=fs)
+    if T > timeseries.size // 2:
+        T = min([timeseries.size // 2, T // 2])
     filtered, trend = extract_trend(filtered, T, lambda_1=lambda_1, lambda_2=lambda_2)
     season = IterativeSeason(filtered, decimation_rate=decimation_rate, prob_dist=None)
     remainder = filtered - season
