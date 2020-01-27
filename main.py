@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from RobuSTL import bilateral_window, bilateral_filtering, estimate_period, \
-    extract_seasonality, adjust_season, seasonal_difference, extract_trend, RSTL, IterativeSeason, \
-    get_remainder
+from IterSTL import estimate_period, ISTL
 
 np.random.seed(4)
 signal = []
