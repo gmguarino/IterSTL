@@ -8,6 +8,9 @@ from scipy.interpolate import interp1d
 from l1 import l1
 
 
+# TODO: FIX TREND
+
+
 def bilateral_window(y, t, J, delta_d, delta_i):
     filtered = []
     y_j = []
