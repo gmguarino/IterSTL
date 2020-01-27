@@ -2,6 +2,8 @@ from cvxopt import blas, lapack, solvers
 from cvxopt import matrix, spdiag, mul, div, sparse
 from cvxopt import spmatrix, sqrt, base
 
+solvers.options['show_progress'] = False
+
 
 def l1(P, q):
     """
