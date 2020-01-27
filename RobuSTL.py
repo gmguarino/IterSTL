@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.random import randint
 from scipy.signal import periodogram
 from scipy.sparse import diags, eye, vstack
 from scipy.sparse.linalg import norm, spsolve, lsqr
@@ -10,7 +11,7 @@ from l1 import l1
 def bilateral_window(y, t, J, delta_d, delta_i):
     filtered = []
     y_j = []
-    print(len(J))
+    # print(len(J))
     for j in J:
         filtered.append(
             np.exp(-abs(j - t) ** 2 / (2 * delta_d ** 2)) * np.exp(-abs(y[j] - y[t]) ** 2 / (2 * delta_i ** 2)))
@@ -49,6 +50,8 @@ def extract_seasonality(timeseries, fs, K, H, delta_d, delta_i):
     T = round(estimate_period(timeseries, fs), 2)
     season = []
     for t in range(N):
+        t_dash = np.arange(int(max(0, t - K * T)), t - T, T, dtype=int)
+
         if t < K * T:
             t_dash = np.arange(0, t - T, T, dtype=int)
         else:
@@ -123,11 +126,67 @@ def adjust_trend(trend, tau1):
 
 
 def get_remainder(timeseries, fs, filter_params, season_params, lambda_1=10.0, lambda_2=0.5):
+    for i in range(5):
+        H, delta_d, delta_i = (filter_params["H"], filter_params["delta_d"], filter_params["delta_i"])
+        filtered = bilateral_filtering(timeseries, H, delta_d, delta_i)
+        T = estimate_period(filtered, fs=fs)
+        filtered, trend = extract_trend(filtered, T, lambda_1=lambda_1, lambda_2=lambda_2)
+        H, K, delta_d, delta_i = (
+            season_params["H"], season_params["K"], season_params["delta_d"], season_params["delta_i"])
+        season = extract_seasonality(filtered, fs, H, K, delta_d, delta_i)
+        timeseries = filtered - season
+    return timeseries, filtered, season, trend
+
+
+def define_rejection(timeseries):
+    diff = np.diff(timeseries)
+    rejection_params = {"mu": diff.mean(), "sep": diff.std() * 2}
+    return rejection_params
+
+
+def reject_point(timeseries, idx):
+    diff = np.diff(timeseries)
+
+    if abs(diff[idx - 1] - diff.mean()) > diff.std() * 2:
+        return True
+    else:
+        return False
+
+
+def IterativeSeason(timeseries, decimation_rate=0.5, prob_dist=None):
+    N = len(timeseries)
+    x_t = randint(N)
+    n_iter = int(round(N * decimation_rate))
+    idxs, values = (np.zeros(n_iter, dtype=int), np.zeros(n_iter))
+    idxs[n_iter - 1] = N - 1
+    values[n_iter - 1] = timeseries[N - 1]
+    it = 0
+    while True:
+
+        # for it in range(1, n_iter - 1):
+        xd = randint(N)
+        if xd != 0 and xd != N - 1 and xd not in idxs and not reject_point(timeseries, xd):
+            it += 1
+
+            idxs[it] = xd
+            values[it] = timeseries[xd]
+        if it >= n_iter - 2:
+            break
+    sorted_idxs = np.argsort(idxs)
+    idxs = idxs[sorted_idxs]
+    values = values[sorted_idxs]
+    interpolator = interp1d(idxs, values, kind='cubic')
+    new_idxs = np.linspace(0, N - 1, N)
+    season = interpolator(new_idxs)
+    return season
+    # return sorted(idxs), timeseries[sorted(idxs)]
+
+
+def RSTL(timeseries, fs, filter_params, decimation_rate=0.5, lambda_1=10.0, lambda_2=0.5):
     H, delta_d, delta_i = (filter_params["H"], filter_params["delta_d"], filter_params["delta_i"])
-    filtered = timeseries  # bilateral_filtering(timeseries, H, delta_d, delta_i)
+    filtered = bilateral_filtering(timeseries, H, delta_d, delta_i)
     T = estimate_period(filtered, fs=fs)
     filtered, trend = extract_trend(filtered, T, lambda_1=lambda_1, lambda_2=lambda_2)
-    H, K, delta_d, delta_i = (season_params["H"], season_params["K"], season_params["delta_d"], season_params["delta_i"])
-    season = extract_seasonality(filtered, fs, H, K, delta_d, delta_i)
+    season = IterativeSeason(filtered, decimation_rate=decimation_rate, prob_dist=None)
     remainder = filtered - season
     return remainder, filtered, season, trend
