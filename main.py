@@ -5,7 +5,7 @@ from RobuSTL import bilateral_window, bilateral_filtering, estimate_period, \
 
 np.random.seed(4)
 signal = []
-
+print("starting")
 freq = 0.8
 print("T = ", 1 / freq)
 fs = 100
@@ -20,11 +20,10 @@ for i in range(500):
 signal = np.asarray(signal)
 plt.figure()
 plt.plot(signal)
-plt.figure()
-# H = 3
-# K = 2
-# delta_d = 1
-# delta_i = 1
+H = 3
+K = 2
+delta_d = 1
+delta_i = 1
 # t = 146
 # j = np.linspace(t - H, t + H, 2 * H + 1, dtype=int)
 # window, yj = bilateral_window(signal, t, j, delta_d, delta_i)
@@ -35,28 +34,33 @@ plt.figure()
 # filtered = bilateral_filtering(signal, H, delta_d, delta_i)
 # plt.plot(filtered)
 #
-# T = estimate_period(signal, fs=fs)
+T = estimate_period(signal, fs=fs)
 #
 # print(seasonal_difference(signal, T).shape, signal.size - T * fs)
 #
-# new_signal, trend = extract_trend(filtered, T, lambda_1=1.0, lambda_2=0.5)
+new_signal, trend = extract_trend(signal, T, lambda_1=1.0, lambda_2=0.5)
 # plt.figure()
 # plt.plot(trend)
 # plt.plot(new_signal)
-# season = extract_seasonality(filtered, fs, H, K, delta_d, delta_i)
-# plt.figure()
-# plt.plot(season)
-
+season = extract_seasonality(new_signal, fs, H, K, delta_d, delta_i)
+plt.figure()
+plt.plot(season)
+plt.plot(new_signal)
 
 filter_params = {"H": 3, "delta_d": 1, "delta_i": 1}
 season_params = {"H": 3, "K": 2, "delta_d": 1, "delta_i": 1}
 
-(remainder, filtered, season, trend) = get_remainder(signal, fs, filter_params, season_params, lambda_1=10.0, lambda_2=0.5)
+(remainder, filtered, season, trend) = get_remainder(signal, fs, filter_params, season_params, lambda_1=1.0,
+                                                     lambda_2=0.5)
 plt.figure()
 plt.plot(remainder, label="remainder")
-plt.plot(filtered, label="filtered")
 plt.plot(season, label="season")
+plt.legend()
+
+plt.figure()
 plt.plot(trend, label="trend")
+plt.plot(filtered, label="filtered")
+
 plt.legend()
 
 plt.show()
