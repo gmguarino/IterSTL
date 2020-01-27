@@ -1,7 +1,7 @@
 # RobuSTL
 
 Sparse STL with an iterative scheme approach.  
-Inspiresd by RobustSTL, defined in [this](https://arxiv.org/abs/1812.01767) paper and implemented by [LeeDoYup](https://github.com/LeeDoYup/RobustSTL).  
+Inspired by RobustSTL, defined in [this](https://arxiv.org/abs/1812.01767) paper and implemented by [LeeDoYup](https://github.com/LeeDoYup/RobustSTL).  
 
 ### Requirements
 ```
