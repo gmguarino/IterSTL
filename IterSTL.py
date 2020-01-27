@@ -182,7 +182,7 @@ def IterativeSeason(timeseries, decimation_rate=0.5, prob_dist=None):
     # return sorted(idxs), timeseries[sorted(idxs)]
 
 
-def RSTL(timeseries, fs, filter_params, decimation_rate=0.5, lambda_1=10.0, lambda_2=0.5):
+def ISTL(timeseries, fs, filter_params, decimation_rate=0.5, lambda_1=10.0, lambda_2=0.5):
     H, delta_d, delta_i = (filter_params["H"], filter_params["delta_d"], filter_params["delta_i"])
     filtered = bilateral_filtering(timeseries, H, delta_d, delta_i)
     T = estimate_period(filtered, fs=fs)
