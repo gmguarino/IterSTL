@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from IterSTL import estimate_period, ISTL
 
-np.random.seed(4)
+# np.random.seed(10)
 signal = []
 print("Generating Signal ...")
 freq = 0.8
@@ -13,7 +13,7 @@ trend = 0.003
 for i in range(500):
     switch = np.random.rand()
     base_signal = trend * i + np.sin(w * i / fs)
-    if switch < 0.98:
+    if switch < 0.97:
         signal.append(base_signal + np.random.rand() * 0.1)
     else:
         signal.append(base_signal + np.random.rand() * 3)
@@ -29,7 +29,7 @@ print(f"Calculated period is: {T} samples")
 filter_params = {"H": 2, "delta_d": 0.5, "delta_i": 0.5}
 
 print("Finding Anomalies...")
-(remainder, filtered, season, trend) = RSTL(signal, fs, filter_params, decimation_rate=0.6, lambda_1=1.0, lambda_2=0.5)
+(remainder, filtered, season, trend) = ISTL(signal, fs, filter_params, decimation_rate=0.6, lambda_1=1.0, lambda_2=0.5)
 
 results = (signal, filtered, season, trend, remainder)
 colours = ['red', 'blue', 'green', 'black', 'violet']
