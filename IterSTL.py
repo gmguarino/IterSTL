@@ -4,6 +4,7 @@ from scipy.signal import periodogram
 from scipy.sparse import diags, eye, vstack
 from scipy.interpolate import interp1d
 from l1 import l1
+from matplotlib import pyplot as plt
 
 
 # TODO: FIX TREND
@@ -35,14 +36,17 @@ def bilateral_filtering(time_series, H, delta_d, delta_i):
     return np.array(filtered)
 
 
-def estimate_period(timeseries, fs):
+def estimate_period(timeseries, fs, plot=True):
     frq, psd = periodogram(timeseries, fs=fs)
-    interpolator = interp1d(frq, psd, kind='quadratic')
+    interpolator = interp1d(frq, psd, kind='cubic')
     frequencies = np.linspace(0, max(frq) // 4, 8 * len(frq))
     powerspectrum = interpolator(frequencies)
     max_index = np.where(powerspectrum == np.amax(powerspectrum))
     main_frq = frequencies[max_index[0][0]]
     period = int(round(1 / main_frq * fs))
+    if plot:
+        plt.figure()
+        plt.semilogx(1 / frequencies * fs, powerspectrum)
     return period
 
 
@@ -183,3 +187,48 @@ def ISTL(timeseries, fs, filter_params, decimation_rate=0.5, lambda_1=10.0, lamb
     season = IterativeSeason(filtered, decimation_rate=decimation_rate, prob_dist=None)
     remainder = filtered - season
     return remainder, filtered, season, trend
+
+
+def make_adjustments(sample, trends, season, fs):
+    tau1 = correction_factor(season, fs)
+    trends = trends + tau1
+    season = season - tau1
+    remainders = sample - trends - season
+    return remainders, trends, season
+
+
+def convergence(new, old, tolerance=1e-10):
+    difference = (np.square(new - old)).mean(axis=None)
+    if difference <= tolerance:
+        return True
+    else:
+        return False
+
+
+def RSTL(timeseries, fs, filter_params, season_params, lambda_1=10.0, lambda_2=0.5, max_iter=1, tol=1e-10):
+    sample = timeseries
+    old_remainders = np.zeros(timeseries.shape)
+    iteration = 0
+    T = estimate_period(timeseries, fs=fs)
+    if T > timeseries.size // 2:
+        T = min([timeseries.size // 2, T // 2])
+    print(f"extracted period: {T}")
+    print("Finding remainders..")
+    while True:
+        iteration += 1
+        H, delta_d, delta_i = (filter_params["H"], filter_params["delta_d"], filter_params["delta_i"])
+        filtered = bilateral_filtering(timeseries, H, delta_d, delta_i)
+        filtered, trend = extract_trend(filtered, T, lambda_1=lambda_1, lambda_2=lambda_2)
+        H, K, delta_d, delta_i = (
+            season_params["H"], season_params["K"], season_params["delta_d"], season_params["delta_i"])
+        season = extract_seasonality(filtered, fs, H, K, delta_d, delta_i)
+        remainders, trends, season = make_adjustments(sample, trend, season, fs)
+        if iteration > 1 and convergence(remainders, old_remainders, tolerance=tol):
+            return remainders, filtered, season, trend
+        else:
+            old_remainders = remainders[:]
+            sample = trends + season + remainders
+        if iteration >= max_iter:
+            print(f"Maximum number of iterations (iter) has been reached, breaking.")
+            break
+    return remainders, filtered, season, trend
